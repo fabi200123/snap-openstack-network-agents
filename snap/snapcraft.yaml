@@ -21,7 +21,7 @@ apps:
 parts:
   agents:
     plugin: dump
-    source: snap
+    source: .
     stage-packages:
       - neutron-common
       - neutron-ovn-metadata-agent
@@ -31,11 +31,23 @@ parts:
     organize:
       usr/bin/neutron-ovn-metadata-agent: files/bin/neutron-ovn-metadata-agent.real
     override-build: |
-      chmod +x "$SNAPCRAFT_PART_INSTALL/files/bin/neutron-ovn-metadata-agent.wrapper"
-      chmod +x "$SNAPCRAFT_PART_INSTALL/files/bin/netctl"
-      chmod +x "$SNAPCRAFT_PART_INSTALL/files/bin/ensure-br-ex.sh"
+      set -euxo pipefail
+      # run the default dump build first (Snapcraft 8 uses craftctl)
+      craftctl default
+
+      # copy our helpers from the repo into the part install dir explicitly
+      install -D -m755 "$CRAFT_PROJECT_DIR/snap/files/bin/neutron-ovn-metadata-agent.wrapper" \
+                       "$SNAPCRAFT_PART_INSTALL/files/bin/neutron-ovn-metadata-agent.wrapper"
+      install -D -m755 "$CRAFT_PROJECT_DIR/snap/files/bin/netctl" \
+                       "$SNAPCRAFT_PART_INSTALL/files/bin/netctl"
+      install -D -m755 "$CRAFT_PROJECT_DIR/snap/files/bin/ensure-br-ex.sh" \
+                       "$SNAPCRAFT_PART_INSTALL/files/bin/ensure-br-ex.sh"
+
+      install -D -m644 "$CRAFT_PROJECT_DIR/snap/files/etc/neutron/neutron_ovn_metadata_agent.ini.tmpl" \
+                       "$SNAPCRAFT_PART_INSTALL/files/etc/neutron/neutron_ovn_metadata_agent.ini.tmpl"
+
       install -D -m644 "$CRAFT_PROJECT_DIR/service/neutron-ovn-metadata-agent.service" \
-        "$SNAPCRAFT_PART_INSTALL/service/neutron-ovn-metadata-agent.service"
+                       "$SNAPCRAFT_PART_INSTALL/service/neutron-ovn-metadata-agent.service"
 
 layout:
   /etc/neutron:
