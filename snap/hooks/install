@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Prepare dirs charm will write into
+mkdir -p "$SNAP_COMMON/etc/neutron" "$SNAP_COMMON/log"
+
+# If the charm seeded external-interface before install, apply now
+if snapctl get external-interface >/dev/null 2>&1; then
+  "$SNAP"/files/bin/bridge-setup apply-from-snap-config || true
+fi

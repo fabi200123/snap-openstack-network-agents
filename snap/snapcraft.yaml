@@ -1,0 +1,60 @@
+name: openstack-network-agents
+summary: Neutron OVN metadata agent & bridge helpers for Sunbeam network nodes
+description: |
+  Provides the neutron-ovn-metadata-agent and minimal host helpers to set up
+  a provider bridge (e.g. br-ex) and ovn-bridge-mappings. Intended to be
+  driven by a subordinate charm; no cloud credentials or transport details
+  are baked into the snap.
+base: core24
+version: "0.1"
+license: BUSL-1.1
+grade: devel
+confinement: classic
+
+apps:
+  metadata-agent:
+    command: files/bin/neutron-ovn-metadata-agent.wrapper
+    daemon: simple
+    install-mode: disable
+    plugs: [network, network-bind, network-control]
+    environment:
+      PYTHONPATH: "${SNAP}/usr/lib/python3/dist-packages:${SNAP}/lib/python3/dist-packages:$PYTHONPATH"
+      PATH: "${SNAP}/usr/sbin:${SNAP}/usr/bin:${SNAP}/sbin:${SNAP}/bin:$PATH"
+
+  bridge-setup:
+    command: files/bin/bridge-setup
+    plugs: [network, network-control]
+
+parts:
+  agents:
+    plugin: dump
+    source: .
+    stage-packages:
+      - neutron-ovn-metadata-agent
+      - python3-neutron
+      - python3-jinja2
+      - iproute2
+    organize:
+      usr/bin/neutron-ovn-metadata-agent: files/bin/neutron-ovn-metadata-agent.real
+    override-build: |
+      set -euxo pipefail
+      craftctl default
+      # ensure our helper scripts & template are present
+      install -D -m755 "$CRAFT_PROJECT_DIR/snap/files/bin/neutron-ovn-metadata-agent.wrapper" \
+                       "$SNAPCRAFT_PART_INSTALL/files/bin/neutron-ovn-metadata-agent.wrapper"
+      install -D -m755 "$CRAFT_PROJECT_DIR/snap/files/bin/bridge-setup" \
+                       "$SNAPCRAFT_PART_INSTALL/files/bin/bridge-setup"
+      install -D -m755 "$CRAFT_PROJECT_DIR/snap/files/bin/ensure-br-ex.sh" \
+                       "$SNAPCRAFT_PART_INSTALL/files/bin/ensure-br-ex.sh"
+      install -D -m644 "$CRAFT_PROJECT_DIR/snap/files/etc/neutron/neutron_ovn_metadata_agent.ini.tmpl" \
+                       "$SNAPCRAFT_PART_INSTALL/files/etc/neutron/neutron_ovn_metadata_agent.ini.tmpl"
+
+layout:
+  /etc/neutron:
+    bind: $SNAP_COMMON/etc/neutron
+
+hooks:
+  install:
+    plugs: [network, network-bind, network-control]
+  configure:
+    plugs: [network, network-bind, network-control]

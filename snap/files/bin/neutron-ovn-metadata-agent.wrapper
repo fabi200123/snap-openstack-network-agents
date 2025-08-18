@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CONF_DIR="$SNAP_COMMON/etc/neutron"
+LOG_DIR="$SNAP_COMMON/log"
+mkdir -p "$CONF_DIR" "$LOG_DIR"
+
+NEUTRON_CONF="$CONF_DIR/neutron.conf"
+AGENT_CONF="$CONF_DIR/neutron_ovn_metadata_agent.ini"
+
+# This snap stays generic; charm is responsible for dropping config.
+if [[ ! -s "$NEUTRON_CONF" || ! -s "$AGENT_CONF" ]]; then
+  echo "metadata-agent: config missing in $CONF_DIR; refusing to start." >&2
+  exit 1
+fi
+
+# Prefer the agent shipped inside the snap’s staged rootfs
+exec "$SNAP/files/bin/neutron-ovn-metadata-agent.real" \
+  --config-file="$NEUTRON_CONF" \
+  --config-file="$AGENT_CONF"

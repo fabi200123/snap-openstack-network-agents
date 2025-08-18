@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+die(){ echo "ERROR: $*" >&2; exit 1; }
+info(){ echo "bridge-setup: $*" >&2; }
+
+# Try to find ovs-vsctl (prefer host or microovn)
+find_ovs_vsctl() {
+  if command -v ovs-vsctl >/dev/null 2>&1; then
+    echo "ovs-vsctl"
+  elif [[ -x /snap/microovn/current/usr/bin/ovs-vsctl ]]; then
+    echo "/snap/microovn/current/usr/bin/ovs-vsctl"
+  else
+    die "ovs-vsctl not found (install microovn or openvswitch)"
+  fi
+}
+
+ensure_mapping() {
+  local bridge="$1" iface="$2" phys="$3"
+  local ovsctl; ovsctl="$(find_ovs_vsctl)"
+
+  # Ensure bridge+enslave (idempotent)
+  "$SNAP"/files/bin/ensure-br-ex.sh "$bridge" "$iface"
+
+  # Merge mapping into external_ids:ovn-bridge-mappings
+  local current newmap
+  current="$($ovsctl --db=unix:/var/run/openvswitch/db.sock \
+             --if-exists get Open_vSwitch . external_ids:ovn-bridge-mappings 2>/dev/null \
+             | tr -d '"')" || current=""
+  newmap="${phys}:${bridge}"
+
+  if [[ "$current" == *"$newmap"* ]]; then
+    info "mapping ${newmap} already present"
+  else
+    if [[ -n "$current" && "$current" != "[]" ]]; then
+      $ovsctl --db=unix:/var/run/openvswitch/db.sock set Open_vSwitch . external_ids:ovn-bridge-mappings="${current},${newmap}"
+    else
+      $ovsctl --db=unix:/var/run/openvswitch/db.sock set Open_vSwitch . external_ids:ovn-bridge-mappings="${newmap}"
+    fi
+    info "set mapping ${newmap}"
+  fi
+}
+
+apply_from_snap_config() {
+  local iface bridge phys
+  iface="$(snapctl get external-interface || true)"
+  bridge="$(snapctl get bridge-name || true)"
+  phys="$(snapctl get physnet-name || true)"
+
+  : "${bridge:=br-ex}"
+  : "${phys:=physnet1}"
+
+  if [[ -z "${iface:-}" ]]; then
+    info "no external-interface set; skipping bridge/mapping"
+    exit 0
+  fi
+
+  ensure_mapping "$bridge" "$iface" "$phys"
+}
+
+case "${1:-}" in
+  apply-from-snap-config) apply_from_snap_config ;;
+  *)
+    cat >&2 <<'EOF'
+Usage:
+  bridge-setup apply-from-snap-config
+    # reads snap config keys:
+    #   external-interface (required), bridge-name (default br-ex), physnet-name (default physnet1)
+EOF
+    exit 2 ;;
+esac

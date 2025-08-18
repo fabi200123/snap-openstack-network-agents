@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Re-apply bridge + mapping whenever snap config changes
+"$SNAP"/files/bin/bridge-setup apply-from-snap-config || exit 0
