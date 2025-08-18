@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Ensure config dirs exist
+mkdir -p "$SNAP_COMMON/etc/neutron" "$SNAP_COMMON/log"
+
+# If operator pre-seeded config via snap set before install hook runs (rare), apply now
+if snapctl get external-interface >/dev/null 2>&1; then
+  "$SNAP"/files/bin/netctl apply-from-snap-config || true
+fi

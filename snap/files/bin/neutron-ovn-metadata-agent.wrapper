@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CONF_DIR="$SNAP_COMMON/etc/neutron"
+mkdir -p "$CONF_DIR" "$SNAP_COMMON/log"
+
+exec "$SNAP/files/bin/neutron-ovn-metadata-agent.real" \
+  --config-file="$CONF_DIR/neutron.conf" \
+  --config-file="$CONF_DIR/neutron_ovn_metadata_agent.ini"

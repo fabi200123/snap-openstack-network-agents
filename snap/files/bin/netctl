@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+die(){ echo "ERROR: $*" >&2; exit 1; }
+info(){ echo "netctl: $*" >&2; }
+
+ensure_mapping() {
+  local bridge="$1" iface="$2" phys="$3"
+
+  # Ensure br-ex and enslave interface (idempotent)
+  "$SNAP"/files/bin/ensure-br-ex.sh "$bridge" "$iface"
+
+  # Append physnet:bridge in external_ids:ovn-bridge-mappings if missing
+  local current
+  current=$(ovs-vsctl get Open_vSwitch . external_ids:ovn-bridge-mappings 2>/dev/null | tr -d '"') || current=""
+  if [[ "$current" == *"$phys:$bridge"* ]]; then
+    info "mapping $phys:$bridge already present"
+  else
+    if [[ -n "$current" && "$current" != "[]" ]]; then
+      ovs-vsctl set Open_vSwitch . external_ids:ovn-bridge-mappings="${current},${phys}:${bridge}"
+    else
+      ovs-vsctl set Open_vSwitch . external_ids:ovn-bridge-mappings="${phys}:${bridge}"
+    fi
+    info "set mapping ${phys}:${bridge}"
+  fi
+}
+
+apply_from_snap_config() {
+  local iface bridge phys
+  iface="$(snapctl get external-interface || true)"
+  bridge="$(snapctl get bridge-name || true)"
+  phys="$(snapctl get physnet-name || true)"
+
+  # Defaults if charm/operator didn't set them yet
+  : "${bridge:=br-ex}"
+  : "${phys:=physnet1}"
+
+  if [[ -z "$iface" ]]; then
+    info "no external-interface set; skipping bridge/mapping"
+    exit 0
+  fi
+
+  ensure_mapping "$bridge" "$iface" "$phys"
+}
+
+case "${1:-}" in
+  apply-from-snap-config) apply_from_snap_config ;;
+  *)
+    cat >&2 <<EOF
+Usage:
+  netctl apply-from-snap-config
+    # reads snap config keys:
+    #   external-interface, bridge-name (default br-ex), physnet-name (default physnet1)
+EOF
+    exit 2 ;;
+esac

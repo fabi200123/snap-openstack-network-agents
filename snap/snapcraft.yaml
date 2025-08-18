@@ -1,0 +1,48 @@
+name: openstack-network-agents
+base: core24
+version: "0.1"
+summary: Neutron OVN metadata agent and helpers for Sunbeam network nodes
+description: |
+  Ships neutron-ovn-metadata-agent and configures provider bridge/physnet
+  to support north-south and baremetal metadata. Intended to be driven by a
+  Juju subordinate charm on network role nodes.
+
+grade: devel
+confinement: classic   # OVS socket access; consider strict later with plugs
+
+apps:
+  metadata-agent:
+    command: files/bin/neutron-ovn-metadata-agent.wrapper
+    daemon: simple
+    install-mode: enable
+  netctl:
+    command: files/bin/netctl
+
+parts:
+  agents:
+    plugin: dump
+    source: .
+    stage-packages:
+      - neutron-common
+      - neutron-ovn-metadata-agent
+      - openvswitch-switch
+      - iproute2
+      - python3-jinja2
+    organize:
+      usr/bin/neutron-ovn-metadata-agent: files/bin/neutron-ovn-metadata-agent.real
+    override-build: |
+      chmod +x $SNAPCRAFT_PART_INSTALL/files/bin/neutron-ovn-metadata-agent.wrapper
+      chmod +x $SNAPCRAFT_PART_INSTALL/files/bin/netctl
+      chmod +x $SNAPCRAFT_PART_INSTALL/files/bin/ensure-br-ex.sh
+      install -D -m644 service/neutron-ovn-metadata-agent.service \
+        $SNAPCRAFT_PART_INSTALL/service/neutron-ovn-metadata-agent.service
+
+layout:
+  /etc/neutron:
+    bind: $SNAP_COMMON/etc/neutron
+
+hooks:
+  install:
+    plugs: [network-bind, network, network-control]
+  configure:
+    plugs: [network-bind, network, network-control]

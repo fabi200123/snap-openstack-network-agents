@@ -1,0 +1,11 @@
+[Unit]
+Description=Neutron OVN metadata agent (snap)
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/snap/openstack-network-agents/current/files/bin/neutron-ovn-metadata-agent.wrapper
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,22 @@
+[DEFAULT]
+debug = {{ debug }}
+host = {{ hostname }}
+log_dir = {{ log_dir }}
+state_path = {{ state_path }}
+
+transport_url = {{ transport_url }}
+
+auth_url = {{ auth_url }}
+auth_type = password
+project_domain_name = Default
+user_domain_name = Default
+project_name = service
+username = {{ neutron_user }}
+password = {{ neutron_password }}
+
+nova_metadata_host = {{ nova_metadata_host }}
+nova_metadata_port = {{ nova_metadata_port }}
+metadata_proxy_shared_secret = {{ metadata_shared_secret }}
+
+# OVS socket provided by classic confinement
+ovsdb_connection = unix:/var/run/openvswitch/db.sock

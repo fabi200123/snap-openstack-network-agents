@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Read snap config and apply bridge/physnet mapping
+"$SNAP"/files/bin/netctl apply-from-snap-config || exit 0
