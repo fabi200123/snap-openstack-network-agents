@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Make sure Python can see packages staged inside the snap
+export PYTHONPATH="${SNAP}/usr/lib/python3/dist-packages:${SNAP}/lib/python3/dist-packages:${PYTHONPATH:-}"
+# Also prefer the snap’s bins
+export PATH="${SNAP}/usr/sbin:${SNAP}/usr/bin:${SNAP}/sbin:${SNAP}/bin:${PATH}"
+
 CONF_DIR="$SNAP_COMMON/etc/neutron"
 mkdir -p "$CONF_DIR" "$SNAP_COMMON/log"
 

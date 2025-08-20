@@ -25,7 +25,7 @@ parts:
     stage-packages:
       - neutron-common
       - neutron-ovn-metadata-agent
-      - python3-neutron 
+      - python3-neutron
       - openvswitch-switch
       - iproute2
       - python3-jinja2
