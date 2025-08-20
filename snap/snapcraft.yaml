@@ -1,12 +1,12 @@
 name: openstack-network-agents
-base: core24
-version: "0.1"
 summary: Neutron OVN metadata agent and helpers for Sunbeam network nodes
 description: |
   Ships neutron-ovn-metadata-agent and configures provider bridge/physnet
   to support north-south and baremetal metadata. Intended to be driven by a
   Juju subordinate charm on network role nodes.
-
+base: core24
+version: "0.1"
+license: BUSL-1.1
 grade: devel
 confinement: classic   # OVS socket access; consider strict later with plugs
 
